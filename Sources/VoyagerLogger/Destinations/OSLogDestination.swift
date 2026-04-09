@@ -21,13 +21,13 @@ public struct OSLogDestination: AppLogger {
 
     public func log(level: LogLevel, message: @autoclosure () -> String, file: String, function: String, line: Int) {
         guard level >= self.minimumLevel else { return }
-        let msg = message()
+        let formatted = "[\(file.fileBaseName):\(line)] \(function): \(message())"
         switch level {
-        case .verbose: self.logger.trace("\(msg, privacy: .public)")
-        case .debug: self.logger.debug("\(msg, privacy: .public)")
-        case .info: self.logger.info("\(msg, privacy: .public)")
-        case .warning: self.logger.warning("\(msg, privacy: .public)")
-        case .error: self.logger.error("\(msg, privacy: .public)")
+        case .verbose: self.logger.trace("\(formatted, privacy: .public)")
+        case .debug: self.logger.debug("\(formatted, privacy: .public)")
+        case .info: self.logger.info("\(formatted, privacy: .public)")
+        case .warning: self.logger.warning("\(formatted, privacy: .public)")
+        case .error: self.logger.error("\(formatted, privacy: .public)")
         }
     }
 

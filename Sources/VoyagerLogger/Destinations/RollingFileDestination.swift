@@ -27,12 +27,14 @@ public actor RollingFileDestination: AppLogger {
 
         public init(
             directory: URL,
+            filePrefix: String = "app",
             maxFileSizeBytes: Int = 5 * 1024 * 1024, // 5 MB
             maxFileAge: TimeInterval = 60 * 60 * 24, // 24 h
             maxArchivedFiles: Int = 5,
             minimumLevel: LogLevel = .debug
         ) {
             self.directory = directory
+            self.filePrefix = filePrefix
             self.maxFileSizeBytes = maxFileSizeBytes
             self.maxFileAge = maxFileAge
             self.maxArchivedFiles = maxArchivedFiles
@@ -41,11 +43,12 @@ public actor RollingFileDestination: AppLogger {
 
         // MARK: Public
 
-        public var maxFileSizeBytes: Int
-        public var maxFileAge: TimeInterval
-        public var maxArchivedFiles: Int
-        public var minimumLevel: LogLevel
-        public var directory: URL
+        public let filePrefix: String
+        public let maxFileSizeBytes: Int
+        public let maxFileAge: TimeInterval
+        public let maxArchivedFiles: Int
+        public let minimumLevel: LogLevel
+        public let directory: URL
     }
 
     // MARK: - AppLogger
@@ -79,8 +82,7 @@ public actor RollingFileDestination: AppLogger {
 
     private func write(_ entry: LogEntry) {
         let timestamp = self.dateFormatter.string(from: entry.date)
-        let fileName = (entry.file as NSString).lastPathComponent
-        let line = "[\(timestamp)] [\(entry.level.label)] [\(fileName):\(entry.line)] \(entry.message)\n"
+        let line = "[\(timestamp)] [\(entry.level.label)] [\(entry.file.fileBaseName):\(entry.line)] \(entry.message)\n"
 
         do {
             try self.ensureFileReady()
@@ -109,7 +111,7 @@ public actor RollingFileDestination: AppLogger {
         self.fileHandle = nil
 
         // Open new file
-        let name = "app_\(fileNameFormatter.string(from: .now)).log"
+        let name = "\(config.filePrefix)_\(fileNameFormatter.string(from: .now)).log"
         let url = self.config.directory.appending(component: name)
         FileManager.default.createFile(atPath: url.path, contents: nil)
         self.fileHandle = try FileHandle(forWritingTo: url)
