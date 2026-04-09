@@ -87,6 +87,32 @@ struct LogFileExporterTests {
     }
 
     @Test
+    func `exportedZipURL is extractable and preserves file contents`() async throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        try self.createLogFile(in: dir, name: "a.log", content: "Content of A\n")
+        try self.createLogFile(in: dir, name: "b.log", content: "Content of B\n")
+
+        let exporter = LogFileExporter(directory: dir)
+        let zipURL = try await exporter.exportedZipURL()
+        defer { try? FileManager.default.removeItem(at: zipURL) }
+
+        // Extract using /usr/bin/ditto via posix_spawn (works on Mac Catalyst)
+        let extractDir = FileManager.default.temporaryDirectory
+            .appending(component: "VoyagerExporterExtract-\(UUID().uuidString)")
+        defer { cleanup(extractDir) }
+
+        let exitCode = runCommand("/usr/bin/ditto", arguments: ["-xk", zipURL.path, extractDir.path])
+        #expect(exitCode == 0)
+
+        let extractedA = try String(contentsOf: extractDir.appending(component: "a.log"), encoding: .utf8)
+        let extractedB = try String(contentsOf: extractDir.appending(component: "b.log"), encoding: .utf8)
+        #expect(extractedA == "Content of A\n")
+        #expect(extractedB == "Content of B\n")
+    }
+
+    @Test
     func `exportedZipURL throws noLogFiles when directory is empty`() async throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
@@ -113,5 +139,18 @@ struct LogFileExporterTests {
     private func createLogFile(in dir: URL, name: String, content: String) throws {
         let url = dir.appending(component: name)
         try content.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// Runs an executable via posix_spawn (works on Mac Catalyst unlike Process).
+    @discardableResult
+    private func runCommand(_ path: String, arguments: [String]) -> Int32 {
+        var pid: pid_t = 0
+        let argv = ([path] + arguments).map { strdup($0) } + [nil]
+        defer { argv.compactMap { $0 }.forEach { free($0) } }
+        let status = posix_spawn(&pid, path, nil, nil, argv, nil)
+        guard status == 0 else { return -1 }
+        var exitStatus: Int32 = 0
+        waitpid(pid, &exitStatus, 0)
+        return (exitStatus >> 8) & 0xFF
     }
 }

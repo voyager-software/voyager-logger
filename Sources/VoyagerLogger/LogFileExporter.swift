@@ -204,11 +204,11 @@ extension LogFileExporter {
                 let finalStatus = compression_stream_process(&stream, Int32(COMPRESSION_STREAM_FINALIZE.rawValue))
                 guard finalStatus == COMPRESSION_STATUS_END else { return input }
 
-                // Strip the 2-byte zlib header and 4-byte adler32 trailer
-                // that COMPRESSION_ZLIB adds — ZIP wants raw DEFLATE.
+                // COMPRESSION_ZLIB already produces raw DEFLATE
+                // (no zlib header/trailer), which is what ZIP expects.
                 let written = capacity - stream.dst_size
-                guard written > 6 else { return input }
-                return Data(buf[2 ..< written - 4])
+                guard written > 0 else { return input }
+                return Data(buf[..<written])
             }
         }
     }
