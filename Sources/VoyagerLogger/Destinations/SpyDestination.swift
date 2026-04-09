@@ -1,5 +1,5 @@
 //
-//  SpyLogger.swift
+//  SpyDestination.swift
 //  VoyagerLogger
 //
 //  Created by Gábor Sajó on 2026-04-09.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class SpyLogger: AppLogger, @unchecked Sendable {
+public final class SpyDestination: LogDestination, @unchecked Sendable {
     // MARK: Lifecycle
 
     public init() {}

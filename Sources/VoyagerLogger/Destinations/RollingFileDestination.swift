@@ -7,7 +7,7 @@
 
 import Foundation
 
-public actor RollingFileDestination: AppLogger {
+public actor RollingFileDestination: LogDestination {
     // MARK: Lifecycle
 
     public init(configuration: Configuration) throws {
@@ -51,7 +51,7 @@ public actor RollingFileDestination: AppLogger {
         public let directory: URL
     }
 
-    // MARK: - AppLogger
+    // MARK: - LogDestination
 
     public nonisolated func log(level: LogLevel, message: @autoclosure () -> String, file: String, function: String, line: Int) {
         guard level >= self.config.minimumLevel else { return }

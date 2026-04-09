@@ -1,11 +1,11 @@
 //
-//  NullLogger.swift
+//  NullDestination.swift
 //  VoyagerLogger
 //
 //  Created by Gábor Sajó on 2026-04-09.
 //
 
-public struct NullLogger: AppLogger {
+public struct NullDestination: LogDestination {
     // MARK: Lifecycle
 
     public init() {}

@@ -1,10 +1,10 @@
 import Testing
 @testable import VoyagerLogger
 
-struct SpyLoggerTests {
+struct SpyDestinationTests {
     @Test
     func `records logged entries`() {
-        let spy = SpyLogger()
+        let spy = SpyDestination()
         spy.info("hello")
         spy.error("boom")
 
@@ -17,7 +17,7 @@ struct SpyLoggerTests {
 
     @Test
     func `reset clears all entries`() {
-        let spy = SpyLogger()
+        let spy = SpyDestination()
         spy.info("one")
         spy.warning("two")
         spy.reset()
@@ -27,7 +27,7 @@ struct SpyLoggerTests {
 
     @Test
     func `is thread-safe under concurrent access`() async {
-        let spy = SpyLogger()
+        let spy = SpyDestination()
         await withTaskGroup(of: Void.self) { group in
             for i in 0 ..< 100 {
                 group.addTask { spy.info("msg \(i)") }

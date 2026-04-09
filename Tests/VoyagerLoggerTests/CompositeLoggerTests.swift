@@ -1,12 +1,12 @@
 import Testing
 @testable import VoyagerLogger
 
-struct CompositeLoggerTests {
+struct AppLoggerTests {
     @Test
     func `fans out to all destinations`() {
-        let spy1 = SpyLogger()
-        let spy2 = SpyLogger()
-        let composite = CompositeLogger([spy1, spy2])
+        let spy1 = SpyDestination()
+        let spy2 = SpyDestination()
+        let composite = AppLogger([spy1, spy2])
 
         composite.info("hello")
 
@@ -18,15 +18,15 @@ struct CompositeLoggerTests {
 
     @Test
     func `works with empty destinations list`() {
-        let composite = CompositeLogger([])
+        let composite = AppLogger([])
         composite.info("no-op")
     }
 
     @Test
     func `preserves log level across destinations`() {
-        let spy1 = SpyLogger()
-        let spy2 = SpyLogger()
-        let composite = CompositeLogger([spy1, spy2])
+        let spy1 = SpyDestination()
+        let spy2 = SpyDestination()
+        let composite = AppLogger([spy1, spy2])
 
         composite.error("fail")
 

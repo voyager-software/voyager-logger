@@ -7,7 +7,7 @@
 
 import OSLog
 
-public struct OSLogDestination: AppLogger {
+public struct OSLogDestination: LogDestination {
     // MARK: Lifecycle
 
     public init(subsystem: String, category: String, minimumLevel: LogLevel = .debug) {

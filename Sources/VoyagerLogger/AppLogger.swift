@@ -5,44 +5,23 @@
 //  Created by Gábor Sajó on 2026-04-09.
 //
 
-public protocol AppLogger: Sendable {
-    func log(
-        level: LogLevel,
-        message: @autoclosure () -> String,
-        file: String,
-        function: String,
-        line: Int
-    )
-}
+public struct AppLogger: LogDestination {
+    // MARK: Lifecycle
 
-public extension AppLogger {
-    func verbose(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        self.log(level: .verbose, message: msg(), file: file.fileBaseName, function: function, line: line)
+    public init(_ destinations: [any LogDestination]) {
+        self.destinations = destinations
     }
 
-    func debug(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        self.log(level: .debug, message: msg(), file: file.fileBaseName, function: function, line: line)
+    // MARK: Public
+
+    public func log(level: LogLevel, message: @autoclosure () -> String, file: String, function: String, line: Int) {
+        let msg = message() // evaluate once, fan out
+        for dest in self.destinations {
+            dest.log(level: level, message: msg, file: file, function: function, line: line)
+        }
     }
 
-    func info(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        self.log(level: .info, message: msg(), file: file.fileBaseName, function: function, line: line)
-    }
+    // MARK: Private
 
-    func warning(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        self.log(level: .warning, message: msg(), file: file.fileBaseName, function: function, line: line)
-    }
-
-    func error(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        self.log(level: .error, message: msg(), file: file.fileBaseName, function: function, line: line)
-    }
-}
-
-extension String {
-    /// Extracts the bare file name from a `#fileID` string (e.g. `"MyModule/ViewController.swift"` → `"ViewController"`).
-    var fileBaseName: String {
-        var name = self
-        if let slash = name.lastIndex(of: "/") { name = String(name[name.index(after: slash)...]) }
-        if let dot = name.lastIndex(of: ".") { name = String(name[..<dot]) }
-        return name
-    }
+    private let destinations: [any LogDestination]
 }
