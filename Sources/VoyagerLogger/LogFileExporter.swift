@@ -44,7 +44,7 @@ public actor LogFileExporter {
     public func exportedFileURL() throws -> URL {
         let data = try exportedData()
         let dest = FileManager.default.temporaryDirectory
-            .appending(component: "app_logs_\(Int(Date().timeIntervalSince1970)).log")
+            .appending(component: "app_logs_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).log")
         try data.write(to: dest)
         return dest
     }
@@ -63,7 +63,7 @@ extension LogFileExporter {
         guard !files.isEmpty else { throw ExportError.noLogFiles }
 
         let dest = FileManager.default.temporaryDirectory
-            .appending(component: "app_logs_\(Int(Date().timeIntervalSince1970)).zip")
+            .appending(component: "app_logs_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).zip")
 
         try zip(files: files, to: dest)
         return dest
