@@ -18,11 +18,11 @@ public enum LogLevel: Int, Sendable, Comparable {
 
     var label: String {
         switch self {
-        case .verbose: "VERBOSE"
-        case .debug: "DEBUG"
-        case .info: "INFO"
-        case .warning: "WARNING"
-        case .error: "ERROR"
+        case .verbose: "VRB"
+        case .debug: "DBG"
+        case .info: "INF"
+        case .warning: "WRN"
+        case .error: "ERR"
         }
     }
 }

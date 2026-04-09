@@ -21,11 +21,11 @@ struct LogLevelTests {
     }
 
     @Test(arguments: [
-        (LogLevel.verbose, "VERBOSE"),
-        (.debug, "DEBUG"),
-        (.info, "INFO"),
-        (.warning, "WARNING"),
-        (.error, "ERROR"),
+        (LogLevel.verbose, "VRB"),
+        (.debug, "DBG"),
+        (.info, "INF"),
+        (.warning, "WRN"),
+        (.error, "ERR"),
     ])
     func `labels return uppercase strings`(level: LogLevel, expected: String) {
         #expect(level.label == expected)

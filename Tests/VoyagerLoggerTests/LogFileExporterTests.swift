@@ -112,6 +112,85 @@ struct LogFileExporterTests {
         #expect(extractedB == "Content of B\n")
     }
 
+    // MARK: - Integration with RollingFileDestination
+
+    @Test
+    func `exports real log files written by RollingFileDestination`() async throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let config = RollingFileDestination.Configuration(directory: dir, minimumLevel: .debug)
+        let dest = try RollingFileDestination(configuration: config)
+
+        dest.info("Integration test message one")
+        dest.error("Integration test message two")
+        try await Task.sleep(for: .milliseconds(500))
+
+        let exporter = LogFileExporter(directory: dir)
+        let files = try await exporter.availableLogFiles()
+        #expect(!files.isEmpty)
+
+        let data = try await exporter.exportedData()
+        let merged = try #require(String(data: data, encoding: .utf8))
+        #expect(merged.contains("Integration test message one"))
+        #expect(merged.contains("Integration test message two"))
+    }
+
+    @Test
+    func `exports real log files to a text file`() async throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let config = RollingFileDestination.Configuration(directory: dir)
+        let dest = try RollingFileDestination(configuration: config)
+
+        dest.warning("Exported warning")
+        try await Task.sleep(for: .milliseconds(500))
+
+        let exporter = LogFileExporter(directory: dir)
+        let url = try await exporter.exportedFileURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("Exported warning"))
+        #expect(content.contains("WRN"))
+    }
+
+    @Test
+    func `zips real log files and extracts them successfully`() async throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let config = RollingFileDestination.Configuration(directory: dir, filePrefix: "integration")
+        let dest = try RollingFileDestination(configuration: config)
+
+        dest.info("Zipped log entry alpha")
+        dest.error("Zipped log entry beta")
+        try await Task.sleep(for: .milliseconds(500))
+
+        let exporter = LogFileExporter(directory: dir)
+        let zipURL = try await exporter.exportedZipURL()
+        defer { try? FileManager.default.removeItem(at: zipURL) }
+
+        // Extract and verify
+        let extractDir = FileManager.default.temporaryDirectory
+            .appending(component: "VoyagerIntegrationExtract-\(UUID().uuidString)")
+        defer { cleanup(extractDir) }
+
+        let exitCode = runCommand("/usr/bin/ditto", arguments: ["-xk", zipURL.path, extractDir.path])
+        #expect(exitCode == 0)
+
+        // Find the extracted log file(s)
+        let extracted = try FileManager.default.contentsOfDirectory(at: extractDir, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "log" }
+        #expect(!extracted.isEmpty)
+        #expect(extracted[0].lastPathComponent.hasPrefix("integration_"))
+
+        let content = try String(contentsOf: extracted[0], encoding: .utf8)
+        #expect(content.contains("Zipped log entry alpha"))
+        #expect(content.contains("Zipped log entry beta"))
+    }
+
     @Test
     func `exportedZipURL throws noLogFiles when directory is empty`() async throws {
         let dir = try makeTempDir()
