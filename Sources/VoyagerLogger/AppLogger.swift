@@ -17,23 +17,23 @@ public protocol AppLogger: Sendable {
 
 public extension AppLogger {
     func verbose(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        log(level: .verbose, message: msg(), file: file, function: function, line: line)
+        self.log(level: .verbose, message: msg(), file: file.fileBaseName, function: function, line: line)
     }
 
     func debug(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        log(level: .debug, message: msg(), file: file, function: function, line: line)
+        self.log(level: .debug, message: msg(), file: file.fileBaseName, function: function, line: line)
     }
 
     func info(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        log(level: .info, message: msg(), file: file, function: function, line: line)
+        self.log(level: .info, message: msg(), file: file.fileBaseName, function: function, line: line)
     }
 
     func warning(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        log(level: .warning, message: msg(), file: file, function: function, line: line)
+        self.log(level: .warning, message: msg(), file: file.fileBaseName, function: function, line: line)
     }
 
     func error(_ msg: @autoclosure () -> String, file: String = #fileID, function: String = #function, line: Int = #line) {
-        log(level: .error, message: msg(), file: file, function: function, line: line)
+        self.log(level: .error, message: msg(), file: file.fileBaseName, function: function, line: line)
     }
 }
 
