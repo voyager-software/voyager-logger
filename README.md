@@ -1,5 +1,73 @@
 # VoyagerLogger
 
-VoyagerLogger is a lightweight Swift logging package for Apple platforms. It provides a small `LogDestination` protocol, convenience APIs for the common log levels, and an `AppLogger` composite logger that can fan out the same message to multiple destinations.
+A lightweight, Sendable-safe Swift logging package for Apple platforms.
 
-The package includes built-in destinations for Unified Logging with `OSLog`, rolling file logging for persisted diagnostics, a null destination for no-op behavior, and a spy destination for tests. It also ships with `LogFileExporter`, which can collect generated `.log` files and export them as a merged file or zip archive for sharing and support workflows.
+## Overview
+
+VoyagerLogger provides a small `LogDestination` protocol with convenience APIs for common log levels, and an `AppLogger` composite that fans out messages to multiple destinations.
+
+### Built-in Destinations
+
+| Destination | Purpose |
+|---|---|
+| `OSLogDestination` | Unified Logging via `os.Logger` |
+| `RollingFileDestination` | Size-based rolling file logs |
+| `NullDestination` | No-op (silences logging) |
+| `SpyDestination` | Captures entries for tests |
+
+### Log File Export
+
+`LogFileExporter` collects `.log` files and exports them as a merged text file or zip archive for sharing and support workflows.
+
+## Usage
+
+```swift
+let logger = AppLogger(destinations: [
+    OSLogDestination(subsystem: "com.app", category: "ui"),
+    RollingFileDestination(directory: logsURL)
+])
+
+logger.info("App launched")
+logger.warning("Low memory")
+logger.error("Something failed", meta: [.retry: true])
+
+logger.screenView("Home", info: ["tab": "feed"])
+logger.action("Tap", info: ["button": "ok"])
+```
+
+## Extensible Metadata Keys
+
+`LogMetadata` uses type-safe, extensible keys instead of raw strings:
+
+```swift
+extension LogMetadataKey {
+    static let retry = LogMetadataKey(rawValue: "retry")
+    static let errorCode = LogMetadataKey(rawValue: "errorCode")
+}
+
+logger.error("Network timeout", meta: [.retry: true, .errorCode: 408])
+```
+
+## Custom Destinations
+
+Conform to `LogDestination` to create your own:
+
+```swift
+struct MyDestination: LogDestination {
+    func log(
+        level: LogLevel,
+        message: @autoclosure () -> String,
+        meta: LogMetadata,
+        file: String,
+        function: String,
+        line: Int
+    ) {
+        // your logging logic
+    }
+}
+```
+
+## Requirements
+
+- Swift 6.0+
+- iOS 16+ / macOS 13+ / tvOS 16+ / Mac Catalyst 16+
