@@ -76,8 +76,6 @@ extension LogFileExporter {
     // MARK: - Private
 
     private func zip(files: [URL], to destination: URL) throws {
-        let fm = FileManager.default
-
         // Apple's built-in zip via NSFileCoordinatorWritingOptions is macOS-only.
         // `/usr/bin/zip` works on iOS simulator but not on device.
         // The most portable approach across iOS/tvOS/macOS is to write a
