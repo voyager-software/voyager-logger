@@ -10,7 +10,7 @@ import Foundation
 public protocol LogDestination: Sendable {
     func log(
         level: LogLevel,
-        message: @autoclosure () -> String,
+        message: @autoclosure () -> any Sendable,
         meta: LogMetadata,
         file: String,
         function: String,
@@ -20,7 +20,7 @@ public protocol LogDestination: Sendable {
 
 public extension LogDestination {
     func verbose(
-        _ msg: @autoclosure () -> String,
+        _ msg: @autoclosure () -> any Sendable,
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
@@ -29,7 +29,7 @@ public extension LogDestination {
     }
 
     func debug(
-        _ msg: @autoclosure () -> String,
+        _ msg: @autoclosure () -> any Sendable,
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
@@ -38,7 +38,7 @@ public extension LogDestination {
     }
 
     func info(
-        _ msg: @autoclosure () -> String,
+        _ msg: @autoclosure () -> any Sendable,
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
@@ -46,43 +46,8 @@ public extension LogDestination {
         self.log(level: .info, message: msg(), meta: [:], file: file.fileBaseName, function: function, line: line)
     }
 
-    func screenView(
-        _ value: String,
-        info: LogInfo? = nil,
-        file: String = #fileID,
-        function: String = #function,
-        line: Int = #line
-    ) {
-        self.custom(name: "SCREEN VIEW", value: value, info: info, file: file.fileBaseName, function: function, line: line)
-    }
-
-    func action(
-        _ value: String,
-        info: LogInfo? = nil,
-        file: String = #fileID,
-        function: String = #function,
-        line: Int = #line
-    ) {
-        self.custom(name: "ACTION", value: value, info: info, file: file.fileBaseName, function: function, line: line)
-    }
-
-    private func custom(
-        name: String,
-        value: String,
-        info: LogInfo? = nil,
-        file: String = #fileID,
-        function: String = #function,
-        line: Int = #line
-    ) {
-        var msg = "\(name) - \(value)"
-        if let info {
-            msg += ": " + info.stringValue(separator: "; ")
-        }
-        self.log(level: .info, message: msg, meta: [:], file: file.fileBaseName, function: function, line: line)
-    }
-
     func warning(
-        _ msg: @autoclosure () -> String,
+        _ msg: @autoclosure () -> any Sendable,
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
@@ -121,7 +86,7 @@ public extension LogDestination {
     }
 }
 
-private extension String {
+public extension String {
     /// Extracts the bare file name from a `#fileID` string (e.g. `"MyModule/ViewController.swift"` → `"ViewController"`).
     var fileBaseName: String {
         var name = self
@@ -131,7 +96,7 @@ private extension String {
     }
 }
 
-private extension LogInfo {
+public extension LogInfo {
     func stringValue(separator: String) -> String {
         self.sorted { $0.key < $1.key }
             .compactMap { "\($0)=\($1)" }

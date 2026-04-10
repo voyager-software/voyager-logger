@@ -43,42 +43,6 @@ struct LogDestinationConvenienceTests {
         #expect(spy.entries.first?.level == .error)
     }
 
-    // MARK: - screenView & action
-
-    @Test
-    func `screenView() logs at info level with formatted message`() {
-        let spy = SpyDestination()
-        spy.screenView("Home")
-        let entry = spy.entries.first
-        #expect(entry?.level == .info)
-        #expect(entry?.message == "SCREEN VIEW - Home")
-    }
-
-    @Test
-    func `screenView() appends info dictionary`() {
-        let spy = SpyDestination()
-        spy.screenView("Home", info: ["tab": "feed"])
-        let entry = spy.entries.first
-        #expect(entry?.message == "SCREEN VIEW - Home: tab=feed")
-    }
-
-    @Test
-    func `action() logs at info level with formatted message`() {
-        let spy = SpyDestination()
-        spy.action("Tap")
-        let entry = spy.entries.first
-        #expect(entry?.level == .info)
-        #expect(entry?.message == "ACTION - Tap")
-    }
-
-    @Test
-    func `action() appends info dictionary`() {
-        let spy = SpyDestination()
-        spy.action("Tap", info: ["button": "ok"])
-        let entry = spy.entries.first
-        #expect(entry?.message == "ACTION - Tap: button=ok")
-    }
-
     // MARK: - error overloads
 
     @Test

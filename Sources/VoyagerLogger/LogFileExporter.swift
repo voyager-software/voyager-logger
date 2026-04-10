@@ -242,7 +242,7 @@ extension LogFileExporter {
 
 // MARK: - Data helpers
 
-extension FileManager {
+public extension FileManager {
     /// Returns `.log` files in the given directory, sorted newest-first by creation date.
     func logFiles(in directory: URL) throws -> [URL] {
         try contentsOfDirectory(at: directory, includingPropertiesForKeys: [.creationDateKey])
