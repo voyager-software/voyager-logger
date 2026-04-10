@@ -53,7 +53,7 @@ public actor RollingFileDestination: LogDestination {
 
     // MARK: - LogDestination
 
-    public nonisolated func log(level: LogLevel, message: @autoclosure () -> String, file: String, function: String, line: Int) {
+    public nonisolated func log(level: LogLevel, message: @autoclosure () -> String, meta: LogMetadata, file: String, function: String, line: Int) {
         guard level >= self.config.minimumLevel else { return }
         let entry = LogEntry(level: level, message: message(), file: file, function: function, line: line)
         Task { await self.write(entry) }

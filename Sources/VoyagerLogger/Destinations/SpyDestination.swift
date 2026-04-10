@@ -17,14 +17,15 @@ public final class SpyDestination: LogDestination, @unchecked Sendable {
     public struct Entry {
         public let level: LogLevel
         public let message: String
+        public let meta: LogMetadata
     }
 
     public var entries: [Entry] {
         self.lock.withLock { self._entries }
     }
 
-    public func log(level: LogLevel, message: @autoclosure () -> String, file: String, function: String, line: Int) {
-        let entry = Entry(level: level, message: message())
+    public func log(level: LogLevel, message: @autoclosure () -> String, meta: LogMetadata, file: String, function: String, line: Int) {
+        let entry = Entry(level: level, message: message(), meta: meta)
         self.lock.withLock { self._entries.append(entry) }
     }
 

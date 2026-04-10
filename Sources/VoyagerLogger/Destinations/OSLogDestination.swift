@@ -19,7 +19,7 @@ public struct OSLogDestination: LogDestination {
 
     public let minimumLevel: LogLevel
 
-    public func log(level: LogLevel, message: @autoclosure () -> String, file: String, function: String, line: Int) {
+    public func log(level: LogLevel, message: @autoclosure () -> String, meta: LogMetadata, file: String, function: String, line: Int) {
         guard level >= self.minimumLevel else { return }
         let formatted = "[\(file):\(line)] \(function): \(message())"
         switch level {
