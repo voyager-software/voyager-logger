@@ -6,6 +6,7 @@ struct OSLogDestinationTests {
     func `respects minimum level filter`() {
         let dest = OSLogDestination(subsystem: "test", category: "test", minimumLevel: .warning)
         #expect(dest.minimumLevel == .warning)
+        #expect(dest.format == .osLogDefault)
     }
 
     @Test
@@ -36,5 +37,17 @@ struct OSLogDestinationTests {
         // These SHOULD appear in the console
         dest.warning("warning SHOULD appear")
         dest.error("error SHOULD appear")
+    }
+
+    @Test
+    func `accepts custom format configuration`() {
+        let format = LogMessageFormat(components: [.message, .level], separator: " | ")
+        let dest = OSLogDestination(
+            subsystem: "com.voyager.logger.tests",
+            category: "OSLogDestinationTests",
+            format: format
+        )
+
+        #expect(dest.format == format)
     }
 }

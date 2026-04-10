@@ -9,7 +9,7 @@ import Foundation
 
 public protocol LogDestination: Sendable {
     func log(
-        level: LogLevel,
+        _ level: LogLevel,
         message: @autoclosure () -> any Sendable,
         meta: LogMetadata,
         file: String,
@@ -25,7 +25,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .verbose, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
+        self.log(.verbose, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func debug(
@@ -34,7 +34,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .debug, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
+        self.log(.debug, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func info(
@@ -43,7 +43,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .info, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
+        self.log(.info, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func warning(
@@ -52,7 +52,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .warning, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
+        self.log(.warning, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func error(
@@ -67,7 +67,7 @@ public extension LogDestination {
         if let info {
             msg += "\n" + info.stringValue(separator: "\n")
         }
-        self.log(level: .error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
+        self.log(.error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func error(
@@ -82,7 +82,7 @@ public extension LogDestination {
         if let info {
             msg += "\n" + info.stringValue(separator: "\n")
         }
-        self.log(level: .error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
+        self.log(.error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 }
 

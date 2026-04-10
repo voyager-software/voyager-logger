@@ -12,5 +12,5 @@ public struct NullDestination: LogDestination {
 
     // MARK: Public
 
-    public func log(level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {}
+    public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {}
 }

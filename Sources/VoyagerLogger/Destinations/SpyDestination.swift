@@ -24,7 +24,7 @@ public final class SpyDestination: LogDestination, Sendable {
         self.state.withLock { $0 }
     }
 
-    public func log(level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
+    public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
         let entry = Entry(level: level, message: "\(message())", meta: meta)
         self.state.withLock { $0.append(entry) }
     }

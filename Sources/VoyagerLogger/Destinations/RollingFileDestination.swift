@@ -35,7 +35,8 @@ public actor RollingFileDestination: LogDestination {
             maxFileSizeBytes: Int = 5 * 1024 * 1024, // 5 MB
             maxFileAge: TimeInterval = 60 * 60 * 24, // 24 h
             maxArchivedFiles: Int = 5,
-            minimumLevel: LogLevel = .debug
+            minimumLevel: LogLevel = .debug,
+            format: LogMessageFormat = .rollingFileDefault
         ) {
             self.directory = directory
             self.filePrefix = filePrefix
@@ -43,6 +44,7 @@ public actor RollingFileDestination: LogDestination {
             self.maxFileAge = maxFileAge
             self.maxArchivedFiles = maxArchivedFiles
             self.minimumLevel = minimumLevel
+            self.format = format
         }
 
         // MARK: Public
@@ -53,11 +55,12 @@ public actor RollingFileDestination: LogDestination {
         public let maxArchivedFiles: Int
         public let minimumLevel: LogLevel
         public let directory: URL
+        public let format: LogMessageFormat
     }
 
     // MARK: - LogDestination
 
-    public nonisolated func log(level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
+    public nonisolated func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
         guard level >= self.config.minimumLevel else { return }
         let entry = LogEntry(level: level, message: "\(message())", file: file, function: function, line: line)
         Task { await self.write(entry) }
@@ -83,8 +86,7 @@ public actor RollingFileDestination: LogDestination {
     private let fileNameFormatter: DateFormatter
 
     private func write(_ entry: LogEntry) {
-        let timestamp = self.dateFormatter.string(from: entry.date)
-        let line = "[\(timestamp)] \(entry.level.label) [\(entry.file):\(entry.line)] [\(entry.function)] \(entry.message)\n"
+        let line = self.formatMessage(entry) + "\n"
 
         do {
             try self.ensureFileReady()
@@ -133,5 +135,16 @@ public actor RollingFileDestination: LogDestination {
         for stale in files.dropFirst(self.config.maxArchivedFiles) {
             try fm.removeItem(at: stale)
         }
+    }
+
+    private func formatMessage(_ entry: LogEntry) -> String {
+        self.config.format.format(
+            level: entry.level,
+            message: entry.message,
+            file: entry.file,
+            function: entry.function,
+            line: entry.line,
+            timestamp: self.dateFormatter.string(from: entry.date)
+        )
     }
 }

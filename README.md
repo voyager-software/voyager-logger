@@ -32,6 +32,50 @@ logger.warning("Low memory")
 logger.error("Something failed", meta: [.retry: true])
 ```
 
+## Message Formatting
+
+`OSLogDestination` and `RollingFileDestination` accept a shared `LogMessageFormat` so you can choose which parts of the rendered log line appear and in what order.
+
+Available components:
+
+- `.timestamp`
+- `.level`
+- `.fileLine`
+- `.function`
+- `.message`
+
+Built-in defaults preserve the current output:
+
+- `LogMessageFormat.osLogDefault` renders `"[File:Line] [function] message"`
+- `LogMessageFormat.rollingFileDefault` renders `"[timestamp] LVL [File:Line] [function] message"`
+
+Customize `OSLogDestination` formatting:
+
+```swift
+let console = OSLogDestination(
+    subsystem: "com.app",
+    category: "network",
+    format: LogMessageFormat(
+        components: [.level, .message, .fileLine],
+        separator: " | "
+    )
+)
+```
+
+Customize `RollingFileDestination` formatting:
+
+```swift
+let fileLogger = try RollingFileDestination(
+    configuration: .init(
+        directory: logsURL,
+        format: LogMessageFormat(
+            components: [.timestamp, .message, .level],
+            separator: " "
+        )
+    )
+)
+```
+
 ## Extensible Metadata Keys
 
 `LogMetadata` uses type-safe, extensible keys instead of raw strings:
@@ -53,7 +97,7 @@ Conform to `LogDestination` to create your own:
 struct MyDestination: LogDestination {
     func log(
         level: LogLevel,
-        message: @autoclosure () -> String,
+        message: @autoclosure () -> any Sendable,
         meta: LogMetadata,
         file: String,
         function: String,

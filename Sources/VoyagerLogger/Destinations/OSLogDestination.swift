@@ -10,18 +10,31 @@ import OSLog
 public struct OSLogDestination: LogDestination {
     // MARK: Lifecycle
 
-    public init(subsystem: String, category: String, minimumLevel: LogLevel = .debug) {
+    public init(
+        subsystem: String,
+        category: String,
+        minimumLevel: LogLevel = .debug,
+        format: LogMessageFormat = .osLogDefault
+    ) {
         self.logger = os.Logger(subsystem: subsystem, category: category)
         self.minimumLevel = minimumLevel
+        self.format = format
     }
 
     // MARK: Public
 
     public let minimumLevel: LogLevel
+    public let format: LogMessageFormat
 
-    public func log(level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
+    public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
         guard level >= self.minimumLevel else { return }
-        let formatted = "[\(file):\(line)] [\(function)] \(message())"
+        let formatted = self.formatMessage(
+            level: level,
+            message: "\(message())",
+            file: file,
+            function: function,
+            line: line
+        )
         switch level {
         case .verbose: self.logger.trace("\(formatted, privacy: .public)")
         case .debug: self.logger.debug("\(formatted, privacy: .public)")
@@ -34,4 +47,20 @@ public struct OSLogDestination: LogDestination {
     // MARK: Private
 
     private let logger: os.Logger
+
+    private func formatMessage(
+        level: LogLevel,
+        message: String,
+        file: String,
+        function: String,
+        line: Int
+    ) -> String {
+        self.format.format(
+            level: level,
+            message: message,
+            file: file,
+            function: function,
+            line: line
+        )
+    }
 }

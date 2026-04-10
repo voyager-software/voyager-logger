@@ -35,6 +35,8 @@ struct RollingFileDestinationTests {
 
         let content = try String(contentsOf: files[0], encoding: .utf8)
         #expect(content.contains("hello from test"))
+        #expect(content.contains("INF"))
+        #expect(content.contains("[RollingFileDestinationTests:"))
     }
 
     @Test
@@ -102,6 +104,39 @@ struct RollingFileDestinationTests {
         let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "log" }
         #expect(files.count <= 2)
+    }
+
+    @Test
+    func `supports custom formatting order and elements`() async throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let format = LogMessageFormat(
+            components: [.message, .level],
+            separator: " | "
+        )
+        let config = RollingFileDestination.Configuration(directory: dir, format: format)
+        let dest = try RollingFileDestination(configuration: config)
+        dest.log(
+            .warning,
+            message: "custom format message",
+            meta: ["requestID": "abc123"],
+            file: "TestFile",
+            function: "testFunction",
+            line: 42
+        )
+
+        try await Task.sleep(for: .milliseconds(500))
+
+        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "log" }
+        let content = try String(contentsOf: #require(files.first), encoding: .utf8)
+
+        #expect(config.format == format)
+        #expect(content.contains("custom format message | WRN"))
+        #expect(!content.contains("TestFile:42"))
+        #expect(!content.contains("testFunction"))
+        #expect(!content.contains("requestID"))
     }
 
     // MARK: Private
