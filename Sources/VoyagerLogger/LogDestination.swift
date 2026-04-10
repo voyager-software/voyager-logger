@@ -25,7 +25,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .verbose, message: msg(), meta: [:], file: file.fileBaseName, function: function, line: line)
+        self.log(level: .verbose, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func debug(
@@ -34,7 +34,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .debug, message: msg(), meta: [:], file: file.fileBaseName, function: function, line: line)
+        self.log(level: .debug, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func info(
@@ -43,7 +43,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .info, message: msg(), meta: [:], file: file.fileBaseName, function: function, line: line)
+        self.log(level: .info, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func warning(
@@ -52,7 +52,7 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.log(level: .warning, message: msg(), meta: [:], file: file.fileBaseName, function: function, line: line)
+        self.log(level: .warning, message: msg(), meta: [:], file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func error(
@@ -67,7 +67,7 @@ public extension LogDestination {
         if let info {
             msg += "\n" + info.stringValue(separator: "\n")
         }
-        self.log(level: .error, message: msg, meta: meta, file: file.fileBaseName, function: function, line: line)
+        self.log(level: .error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 
     func error(
@@ -82,7 +82,7 @@ public extension LogDestination {
         if let info {
             msg += "\n" + info.stringValue(separator: "\n")
         }
-        self.log(level: .error, message: msg, meta: meta, file: file.fileBaseName, function: function, line: line)
+        self.log(level: .error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 }
 
@@ -93,6 +93,12 @@ public extension String {
         if let slash = name.lastIndex(of: "/") { name = String(name[name.index(after: slash)...]) }
         if let dot = name.lastIndex(of: ".") { name = String(name[..<dot]) }
         return name
+    }
+
+    /// Extracts the bare function name from a `#function` string (e.g. `"loadUser(id:)"` → `"loadUser"`).
+    var functionBaseName: String {
+        guard let paren = self.firstIndex(of: "(") else { return self }
+        return String(self[..<paren])
     }
 }
 

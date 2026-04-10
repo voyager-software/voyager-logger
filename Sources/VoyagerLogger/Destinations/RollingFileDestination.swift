@@ -84,7 +84,7 @@ public actor RollingFileDestination: LogDestination {
 
     private func write(_ entry: LogEntry) {
         let timestamp = self.dateFormatter.string(from: entry.date)
-        let line = "[\(timestamp)] \(entry.level.label) [\(entry.file):\(entry.line)] \(entry.message)\n"
+        let line = "[\(timestamp)] \(entry.level.label) [\(entry.file):\(entry.line)] [\(entry.function)] \(entry.message)\n"
 
         do {
             try self.ensureFileReady()

@@ -30,9 +30,6 @@ let logger = AppLogger(destinations: [
 logger.info("App launched")
 logger.warning("Low memory")
 logger.error("Something failed", meta: [.retry: true])
-
-logger.screenView("Home", info: ["tab": "feed"])
-logger.action("Tap", info: ["button": "ok"])
 ```
 
 ## Extensible Metadata Keys
