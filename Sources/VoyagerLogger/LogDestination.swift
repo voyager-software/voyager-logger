@@ -113,7 +113,11 @@ public extension LogDestination {
         function: String = #function,
         line: Int = #line
     ) {
-        self.error(err.logMessage, info: info, meta: meta, file: file, function: function, line: line)
+        var msg = err.logMessage
+        if let info {
+            msg += "\n" + info.stringValue(separator: "\n")
+        }
+        self.log(level: .error, message: msg, meta: meta, file: file.fileBaseName, function: function, line: line)
     }
 }
 

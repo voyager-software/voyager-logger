@@ -5,36 +5,35 @@
 //  Created by Gábor Sajó on 2026-04-09.
 //
 
-import Foundation
+import os
 
-public final class SpyDestination: LogDestination, @unchecked Sendable {
+public final class SpyDestination: LogDestination, Sendable {
     // MARK: Lifecycle
 
     public init() {}
 
     // MARK: Public
 
-    public struct Entry {
+    public struct Entry: Sendable {
         public let level: LogLevel
         public let message: String
         public let meta: LogMetadata
     }
 
     public var entries: [Entry] {
-        self.lock.withLock { self._entries }
+        self.state.withLock { $0 }
     }
 
     public func log(level: LogLevel, message: @autoclosure () -> String, meta: LogMetadata, file: String, function: String, line: Int) {
         let entry = Entry(level: level, message: message(), meta: meta)
-        self.lock.withLock { self._entries.append(entry) }
+        self.state.withLock { $0.append(entry) }
     }
 
     public func reset() {
-        self.lock.withLock { self._entries.removeAll() }
+        self.state.withLock { $0.removeAll() }
     }
 
     // MARK: Private
 
-    private let lock = NSLock()
-    private var _entries: [Entry] = []
+    private let state = OSAllocatedUnfairLock(initialState: [Entry]())
 }

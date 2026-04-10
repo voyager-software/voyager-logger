@@ -20,6 +20,10 @@ public actor RollingFileDestination: LogDestination {
         try FileManager.default.createDirectory(at: configuration.directory, withIntermediateDirectories: true)
     }
 
+    deinit {
+        try? fileHandle?.close()
+    }
+
     // MARK: Public
 
     public struct Configuration: Sendable {
@@ -70,8 +74,6 @@ public actor RollingFileDestination: LogDestination {
         let date: Date = .now
     }
 
-    // MARK: - State
-
     private let config: Configuration
     private var fileHandle: FileHandle?
     private var currentFileURL: URL?
@@ -111,7 +113,7 @@ public actor RollingFileDestination: LogDestination {
         self.fileHandle = nil
 
         // Open new file
-        let name = "\(config.filePrefix)_\(fileNameFormatter.string(from: .now)).log"
+        let name = "\(config.filePrefix)_\(self.fileNameFormatter.string(from: .now)).log"
         let url = self.config.directory.appending(component: name)
         FileManager.default.createFile(atPath: url.path, contents: nil)
         self.fileHandle = try FileHandle(forWritingTo: url)
@@ -125,13 +127,7 @@ public actor RollingFileDestination: LogDestination {
 
     private func pruneArchives() throws {
         let fm = FileManager.default
-        let files = try fm.contentsOfDirectory(at: self.config.directory, includingPropertiesForKeys: [.creationDateKey])
-            .filter { $0.pathExtension == "log" }
-            .sorted {
-                let d1 = (try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
-                let d2 = (try? $1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
-                return d1 > d2 // newest first
-            }
+        let files = try fm.logFiles(in: self.config.directory)
 
         guard files.count > self.config.maxArchivedFiles else { return }
         for stale in files.dropFirst(self.config.maxArchivedFiles) {
