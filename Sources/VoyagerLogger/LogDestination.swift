@@ -57,14 +57,14 @@ public extension LogDestination {
 
     func error(
         _ msg: @autoclosure () -> String,
-        info: LogInfo? = nil,
+        info: LogInfo = [:],
         meta: LogMetadata = [:],
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
         var msg = msg()
-        if let info {
+        if !info.isEmpty {
             msg += "\n" + info.stringValue(separator: "\n")
         }
         self.log(.error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
@@ -72,14 +72,14 @@ public extension LogDestination {
 
     func error(
         _ err: Error,
-        info: LogInfo? = nil,
+        info: LogInfo = [:],
         meta: LogMetadata = [:],
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
         var msg = err.logMessage
-        if let info {
+        if !info.isEmpty {
             msg += "\n" + info.stringValue(separator: "\n")
         }
         self.log(.error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
