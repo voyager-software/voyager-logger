@@ -38,7 +38,7 @@ public struct OSLogDestination: LogDestination {
         switch level {
         case .verbose: self.logger.trace("\(formatted, privacy: .public)")
         case .debug: self.logger.debug("\(formatted, privacy: .public)")
-        case .info: self.logger.info("\(formatted, privacy: .public)")
+        case .info: self.logger.notice("\(formatted, privacy: .public)")
         case .warning: self.logger.warning("\(formatted, privacy: .public)")
         case .error: self.logger.error("\(formatted, privacy: .public)")
         }
