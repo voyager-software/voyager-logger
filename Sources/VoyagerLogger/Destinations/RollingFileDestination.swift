@@ -88,7 +88,7 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
     private var currentFileURL: URL?
     private var currentFileSize: Int = 0
     private var fileOpenedAt: Date = .distantPast
-    // writerQueue-confined — only accessed from writerQueue
+    /// writerQueue-confined — only accessed from writerQueue
     private let timestampFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
@@ -96,7 +96,7 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
         return f
     }()
 
-    // writerQueue-confined — only accessed from writerQueue
+    /// writerQueue-confined — only accessed from writerQueue
     private let fileNameFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
@@ -139,13 +139,13 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
     }
 
     private func write(_ entry: LogEntry) {
-        let line = config.format.format(
+        let line = self.config.format.format(
             level: entry.level,
             message: entry.message,
             file: entry.file,
             function: entry.function,
             line: entry.line,
-            timestamp: timestampFormatter.string(from: entry.date)
+            timestamp: self.timestampFormatter.string(from: entry.date)
         ) + "\n"
 
         do {
@@ -175,8 +175,8 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
         self.fileHandle = nil
 
         // Open new file, appending a counter if needed to avoid collisions
-        let baseName = "\(config.filePrefix)_\(fileNameFormatter.string(from: .now))"
-        let url = nextAvailableURL(baseName: baseName)
+        let baseName = "\(config.filePrefix)_\(self.fileNameFormatter.string(from: .now))"
+        let url = self.nextAvailableURL(baseName: baseName)
         try Data().write(to: url)
         self.fileHandle = try FileHandle(forWritingTo: url)
         self.currentFileURL = url
@@ -188,7 +188,7 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
     }
 
     private func nextAvailableURL(baseName: String) -> URL {
-        let dir = config.directory
+        let dir = self.config.directory
         let candidate = dir.appending(component: "\(baseName).log")
         guard FileManager.default.fileExists(atPath: candidate.path) else { return candidate }
 
@@ -210,5 +210,4 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
             try fm.removeItem(at: stale)
         }
     }
-
 }

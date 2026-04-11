@@ -38,16 +38,15 @@ logger.error("Something failed", meta: [.retry: true])
 
 Available components:
 
-- `.timestamp`
-- `.level`
-- `.fileLine`
-- `.function`
-- `.message`
+- `.timestamp` — bracketed date/time, e.g. `[2026-04-11 10:30:00]`
+- `.level` — log level label, e.g. `ERROR`
+- `.callSite` — file, function, and line combined, e.g. `MyFile.doWork():42`
+- `.message` — the log message itself
 
-Built-in defaults preserve the current output:
+Built-in defaults:
 
-- `LogMessageFormat.osLogDefault` renders `"[File:Line] [function] message"`
-- `LogMessageFormat.rollingFileDefault` renders `"[timestamp] LVL [File:Line] [function] message"`
+- `LogMessageFormat.osLogDefault` — `[.callSite, .message]`
+- `LogMessageFormat.rollingFileDefault` — `[.timestamp, .level, .callSite, .message]`
 
 Customize `OSLogDestination` formatting:
 
@@ -56,7 +55,7 @@ let console = OSLogDestination(
     subsystem: "com.app",
     category: "network",
     format: LogMessageFormat(
-        components: [.level, .message, .fileLine],
+        components: [.level, .message, .callSite],
         separator: " | "
     )
 )
