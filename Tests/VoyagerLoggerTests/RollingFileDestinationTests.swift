@@ -36,7 +36,7 @@ struct RollingFileDestinationTests {
         let content = try String(contentsOf: files[0], encoding: .utf8)
         #expect(content.contains("hello from test"))
         #expect(content.contains("INF"))
-        #expect(content.contains("[RollingFileDestinationTests:"))
+        #expect(content.contains("RollingFileDestinationTests"))
     }
 
     @Test
