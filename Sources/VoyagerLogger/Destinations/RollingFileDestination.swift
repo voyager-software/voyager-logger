@@ -6,21 +6,20 @@
 //
 
 import Foundation
+import os
 
-public actor RollingFileDestination: LogDestination {
+public final class RollingFileDestination: LogDestination, @unchecked Sendable {
     // MARK: Lifecycle
 
     public init(configuration: Configuration) throws {
         self.config = configuration
-        self.dateFormatter = DateFormatter()
-        self.dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-        self.fileNameFormatter = DateFormatter()
-        self.fileNameFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-
         try FileManager.default.createDirectory(at: configuration.directory, withIntermediateDirectories: true)
     }
 
     deinit {
+        // No queue dispatch needed: deinit only runs once all references are gone,
+        // which means no queued blocks and no callers — exclusive access is guaranteed.
+        drainPendingEntries()
         try? fileHandle?.close()
     }
 
@@ -39,10 +38,10 @@ public actor RollingFileDestination: LogDestination {
             format: LogMessageFormat = .rollingFileDefault
         ) {
             self.directory = directory
-            self.filePrefix = filePrefix
-            self.maxFileSizeBytes = maxFileSizeBytes
-            self.maxFileAge = maxFileAge
-            self.maxArchivedFiles = maxArchivedFiles
+            self.filePrefix = filePrefix.isEmpty ? "app" : filePrefix
+            self.maxFileSizeBytes = maxFileSizeBytes > 0 ? maxFileSizeBytes : 5 * 1024 * 1024
+            self.maxFileAge = maxFileAge > 0 ? maxFileAge : 60 * 60 * 24
+            self.maxArchivedFiles = maxArchivedFiles > 0 ? maxArchivedFiles : 1
             self.minimumLevel = minimumLevel
             self.format = format
         }
@@ -60,10 +59,10 @@ public actor RollingFileDestination: LogDestination {
 
     // MARK: - LogDestination
 
-    public nonisolated func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
+    public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
         guard level >= self.config.minimumLevel else { return }
         let entry = LogEntry(level: level, message: "\(message())", file: file, function: function, line: line)
-        Task { await self.write(entry) }
+        self.enqueue(entry)
     }
 
     // MARK: Private
@@ -77,16 +76,77 @@ public actor RollingFileDestination: LogDestination {
         let date: Date = .now
     }
 
+    private struct BufferState: Sendable {
+        var pendingEntries: [LogEntry] = []
+        var drainScheduled = false
+    }
+
     private let config: Configuration
+    private let buffer = OSAllocatedUnfairLock(initialState: BufferState())
+    private let writerQueue = DispatchQueue(label: "com.voyager.logger.rolling-file-destination")
     private var fileHandle: FileHandle?
     private var currentFileURL: URL?
     private var currentFileSize: Int = 0
     private var fileOpenedAt: Date = .distantPast
-    private let dateFormatter: DateFormatter
-    private let fileNameFormatter: DateFormatter
+    // writerQueue-confined — only accessed from writerQueue
+    private let timestampFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        return f
+    }()
+
+    // writerQueue-confined — only accessed from writerQueue
+    private let fileNameFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private func enqueue(_ entry: LogEntry) {
+        let shouldScheduleDrain = self.buffer.withLock { state in
+            state.pendingEntries.append(entry)
+            guard !state.drainScheduled else { return false }
+            state.drainScheduled = true
+            return true
+        }
+
+        guard shouldScheduleDrain else { return }
+        self.writerQueue.async {
+            self.drainPendingEntries()
+        }
+    }
+
+    private func drainPendingEntries() {
+        while true {
+            let batch: [LogEntry] = self.buffer.withLock { state in
+                guard !state.pendingEntries.isEmpty else {
+                    state.drainScheduled = false
+                    return []
+                }
+
+                let batch = state.pendingEntries
+                state.pendingEntries.removeAll(keepingCapacity: true)
+                return batch
+            }
+
+            guard !batch.isEmpty else { return }
+            for entry in batch {
+                self.write(entry)
+            }
+        }
+    }
 
     private func write(_ entry: LogEntry) {
-        let line = self.formatMessage(entry) + "\n"
+        let line = config.format.format(
+            level: entry.level,
+            message: entry.message,
+            file: entry.file,
+            function: entry.function,
+            line: entry.line,
+            timestamp: timestampFormatter.string(from: entry.date)
+        ) + "\n"
 
         do {
             try self.ensureFileReady()
@@ -114,10 +174,10 @@ public actor RollingFileDestination: LogDestination {
         try self.fileHandle?.close()
         self.fileHandle = nil
 
-        // Open new file
-        let name = "\(config.filePrefix)_\(self.fileNameFormatter.string(from: .now)).log"
-        let url = self.config.directory.appending(component: name)
-        FileManager.default.createFile(atPath: url.path, contents: nil)
+        // Open new file, appending a counter if needed to avoid collisions
+        let baseName = "\(config.filePrefix)_\(fileNameFormatter.string(from: .now))"
+        let url = nextAvailableURL(baseName: baseName)
+        try Data().write(to: url)
         self.fileHandle = try FileHandle(forWritingTo: url)
         self.currentFileURL = url
         self.currentFileSize = 0
@@ -127,24 +187,28 @@ public actor RollingFileDestination: LogDestination {
         try self.pruneArchives()
     }
 
+    private func nextAvailableURL(baseName: String) -> URL {
+        let dir = config.directory
+        let candidate = dir.appending(component: "\(baseName).log")
+        guard FileManager.default.fileExists(atPath: candidate.path) else { return candidate }
+
+        var counter = 1
+        while true {
+            let numbered = dir.appending(component: "\(baseName)_\(counter).log")
+            if !FileManager.default.fileExists(atPath: numbered.path) { return numbered }
+            counter += 1
+        }
+    }
+
     private func pruneArchives() throws {
         let fm = FileManager.default
         let files = try fm.logFiles(in: self.config.directory)
 
-        guard files.count > self.config.maxArchivedFiles else { return }
-        for stale in files.dropFirst(self.config.maxArchivedFiles) {
+        let archives = files.filter { $0 != self.currentFileURL }
+        guard archives.count > self.config.maxArchivedFiles else { return }
+        for stale in archives.dropFirst(self.config.maxArchivedFiles) {
             try fm.removeItem(at: stale)
         }
     }
 
-    private func formatMessage(_ entry: LogEntry) -> String {
-        self.config.format.format(
-            level: entry.level,
-            message: entry.message,
-            file: entry.file,
-            function: entry.function,
-            line: entry.line,
-            timestamp: self.dateFormatter.string(from: entry.date)
-        )
-    }
 }

@@ -66,21 +66,42 @@ struct RollingFileDestinationTests {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
-        // Use a tiny size limit to trigger rotation.
-        // Rotation filenames use second-precision timestamps, so we sleep
-        // between bursts to ensure distinct file names.
         let config = RollingFileDestination.Configuration(directory: dir, maxFileSizeBytes: 50)
         let dest = try RollingFileDestination(configuration: config)
 
         dest.info("First message that exceeds the fifty byte limit easily")
-        try await Task.sleep(for: .milliseconds(1100))
+        dest.info("Second message that triggers rotation")
 
-        dest.info("Second message written after a pause to get a new filename")
         try await Task.sleep(for: .milliseconds(500))
 
         let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "log" }
         #expect(files.count > 1)
+    }
+
+    @Test
+    func `uses counter suffix for same-day rotations`() async throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let config = RollingFileDestination.Configuration(directory: dir, maxFileSizeBytes: 10)
+        let dest = try RollingFileDestination(configuration: config)
+
+        for i in 0 ..< 5 {
+            dest.info("Message \(i) that is long enough to exceed the tiny limit")
+        }
+
+        try await Task.sleep(for: .milliseconds(500))
+
+        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "log" }
+            .map(\.lastPathComponent)
+            .sorted()
+
+        #expect(files.count > 2)
+        // First file has no counter, subsequent files get _1, _2, etc.
+        let withCounter = files.filter { $0.contains("_1.log") || $0.contains("_2.log") }
+        #expect(!withCounter.isEmpty)
     }
 
     @Test
@@ -99,11 +120,12 @@ struct RollingFileDestinationTests {
             dest.info("Msg \(i) padded with text to exceed the tiny limit easily")
         }
 
-        try await Task.sleep(for: .milliseconds(1500))
+        try await Task.sleep(for: .milliseconds(500))
 
         let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "log" }
-        #expect(files.count <= 2)
+        // maxArchivedFiles(2) + 1 current file = 3
+        #expect(files.count <= 3)
     }
 
     @Test
