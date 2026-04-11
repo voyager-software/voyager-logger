@@ -82,6 +82,8 @@ public extension LogDestination {
         if !info.isEmpty {
             msg += "\n" + info.stringValue(separator: "\n")
         }
+        var meta = meta
+        meta[.originalError] = SendableError(err)
         self.log(.error, message: msg, meta: meta, file: file.fileBaseName, function: function.functionBaseName, line: line)
     }
 }
