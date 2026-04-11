@@ -21,13 +21,12 @@ public struct LogMessageFormat: Sendable, Equatable {
     public enum Component: Sendable, Equatable {
         case timestamp
         case level
-        case fileLine
-        case function
+        case callSite
         case message
     }
 
-    public static let osLogDefault = Self(components: [.fileLine, .function, .message])
-    public static let rollingFileDefault = Self(components: [.timestamp, .level, .fileLine, .function, .message])
+    public static let osLogDefault = Self(components: [.callSite, .message])
+    public static let rollingFileDefault = Self(components: [.timestamp, .level, .callSite, .message])
 
     public let components: [Component]
     public let separator: String
@@ -47,10 +46,8 @@ public struct LogMessageFormat: Sendable, Equatable {
                     timestamp.map { "[\($0)]" } ?? ""
                 case .level:
                     level.label
-                case .fileLine:
-                    "[\(file):\(line)]"
-                case .function:
-                    "[\(function)]"
+                case .callSite:
+                    "\(file).\(function)():\(line)"
                 case .message:
                     message
                 }

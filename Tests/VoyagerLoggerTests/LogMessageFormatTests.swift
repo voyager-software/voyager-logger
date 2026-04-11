@@ -12,7 +12,7 @@ struct LogMessageFormatTests {
             line: 42
         )
 
-        #expect(formatted == "[SampleFile:42] [sampleFunction] hello")
+        #expect(formatted == "SampleFile.sampleFunction():42 hello")
     }
 
     @Test
@@ -26,13 +26,13 @@ struct LogMessageFormatTests {
             timestamp: "2026-04-10 15:00:00.000"
         )
 
-        #expect(formatted == "[2026-04-10 15:00:00.000] WRN [Storage:8] [checkCapacity] disk nearly full")
+        #expect(formatted == "[2026-04-10 15:00:00.000] WRN Storage.checkCapacity():8 disk nearly full")
     }
 
     @Test
     func `supports custom ordering and separators`() {
         let format = LogMessageFormat(
-            components: [.message, .level, .fileLine],
+            components: [.message, .level, .callSite],
             separator: " | "
         )
 
@@ -44,7 +44,7 @@ struct LogMessageFormatTests {
             line: 17
         )
 
-        #expect(formatted == "request failed | ERR | [Network:17]")
+        #expect(formatted == "request failed | ERR | Network.load():17")
     }
 
     @Test
