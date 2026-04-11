@@ -149,8 +149,13 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
         ) + "\n"
 
         do {
-            try self.ensureFileReady()
-            guard let handle = fileHandle, let data = line.data(using: .utf8) else { return }
+            if self.fileHandle == nil
+                || self.currentFileSize >= self.config.maxFileSizeBytes
+                || entry.date.timeIntervalSince(self.fileOpenedAt) >= self.config.maxFileAge
+            {
+                try self.rotate()
+            }
+            guard let handle = self.fileHandle, let data = line.data(using: .utf8) else { return }
             try handle.write(contentsOf: data)
             self.currentFileSize += data.count
         }
@@ -159,27 +164,37 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
         }
     }
 
-    private func ensureFileReady() throws {
-        let needsRotation = self.fileHandle == nil
-            || self.currentFileSize >= self.config.maxFileSizeBytes
-            || Date().timeIntervalSince(self.fileOpenedAt) >= self.config.maxFileAge
-
-        if needsRotation {
-            try self.rotate()
-        }
-    }
-
     private func rotate() throws {
         // Close current handle
         try self.fileHandle?.close()
         self.fileHandle = nil
 
-        // Open new file, appending a counter if needed to avoid collisions
         let baseName = "\(config.filePrefix)_\(self.fileNameFormatter.string(from: .now))"
-        let url = self.nextAvailableURL(baseName: baseName)
-        try Data().write(to: url)
-        self.fileHandle = try FileHandle(forWritingTo: url)
-        self.currentFileURL = url
+
+        // Single scan: find the latest existing file and the next available name
+        let (latest, nextURL) = self.scanFiles(baseName: baseName)
+
+        // Try to reuse the most recent existing file for today if it's still within limits
+        if let existing = latest {
+            let attrs = try FileManager.default.attributesOfItem(atPath: existing.path)
+            let size = (attrs[.size] as? Int) ?? 0
+            let created = (attrs[.creationDate] as? Date) ?? .distantPast
+            if size < self.config.maxFileSizeBytes,
+               Date().timeIntervalSince(created) < self.config.maxFileAge
+            {
+                self.fileHandle = try FileHandle(forWritingTo: existing)
+                try self.fileHandle?.seekToEnd()
+                self.currentFileURL = existing
+                self.currentFileSize = size
+                self.fileOpenedAt = created
+                return
+            }
+        }
+
+        // Create new file
+        try Data().write(to: nextURL)
+        self.fileHandle = try FileHandle(forWritingTo: nextURL)
+        self.currentFileURL = nextURL
         self.currentFileSize = 0
         self.fileOpenedAt = .now
 
@@ -187,15 +202,24 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
         try self.pruneArchives()
     }
 
-    private func nextAvailableURL(baseName: String) -> URL {
+    /// Returns (latestExisting, nextAvailable) in a single pass over the filesystem.
+    private func scanFiles(baseName: String) -> (latest: URL?, next: URL) {
         let dir = self.config.directory
-        let candidate = dir.appending(component: "\(baseName).log")
-        guard FileManager.default.fileExists(atPath: candidate.path) else { return candidate }
+        let fm = FileManager.default
+        let base = dir.appending(component: "\(baseName).log")
 
+        guard fm.fileExists(atPath: base.path) else {
+            return (nil, base)
+        }
+
+        var latest = base
         var counter = 1
         while true {
             let numbered = dir.appending(component: "\(baseName)_\(counter).log")
-            if !FileManager.default.fileExists(atPath: numbered.path) { return numbered }
+            guard fm.fileExists(atPath: numbered.path) else {
+                return (latest, numbered)
+            }
+            latest = numbered
             counter += 1
         }
     }
