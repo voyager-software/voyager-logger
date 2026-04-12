@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import os
 
 public final class RollingFileDestination: LogDestination, @unchecked Sendable {
     // MARK: Lifecycle
@@ -17,9 +16,6 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
     }
 
     deinit {
-        // No queue dispatch needed: deinit only runs once all references are gone,
-        // which means no queued blocks and no callers — exclusive access is guaranteed.
-        drainPendingEntries()
         try? fileHandle?.close()
     }
 
@@ -62,7 +58,7 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
     public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
         guard level >= self.config.minimumLevel else { return }
         let entry = LogEntry(level: level, message: "\(message())", file: file, function: function, line: line)
-        self.enqueue(entry)
+        self.writerQueue.async { self.write(entry) }
     }
 
     // MARK: Private
@@ -76,18 +72,13 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
         let date: Date = .now
     }
 
-    private struct BufferState: Sendable {
-        var pendingEntries: [LogEntry] = []
-        var drainScheduled = false
-    }
-
     private let config: Configuration
-    private let buffer = OSAllocatedUnfairLock(initialState: BufferState())
     private let writerQueue = DispatchQueue(label: "com.voyager.logger.rolling-file-destination")
     private var fileHandle: FileHandle?
     private var currentFileURL: URL?
     private var currentFileSize: Int = 0
     private var fileOpenedAt: Date = .distantPast
+
     /// writerQueue-confined — only accessed from writerQueue
     private let timestampFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -103,40 +94,6 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
         f.dateFormat = "yyyy-MM-dd"
         return f
     }()
-
-    private func enqueue(_ entry: LogEntry) {
-        let shouldScheduleDrain = self.buffer.withLock { state in
-            state.pendingEntries.append(entry)
-            guard !state.drainScheduled else { return false }
-            state.drainScheduled = true
-            return true
-        }
-
-        guard shouldScheduleDrain else { return }
-        self.writerQueue.async {
-            self.drainPendingEntries()
-        }
-    }
-
-    private func drainPendingEntries() {
-        while true {
-            let batch: [LogEntry] = self.buffer.withLock { state in
-                guard !state.pendingEntries.isEmpty else {
-                    state.drainScheduled = false
-                    return []
-                }
-
-                let batch = state.pendingEntries
-                state.pendingEntries.removeAll(keepingCapacity: true)
-                return batch
-            }
-
-            guard !batch.isEmpty else { return }
-            for entry in batch {
-                self.write(entry)
-            }
-        }
-    }
 
     private func write(_ entry: LogEntry) {
         let line = self.config.format.format(

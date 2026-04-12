@@ -161,6 +161,36 @@ struct RollingFileDestinationTests {
         #expect(!content.contains("requestID"))
     }
 
+    @Test
+    func `reuses existing file on second launch`() async throws {
+        let dir = try makeTempDir()
+        defer { cleanup(dir) }
+
+        let config = RollingFileDestination.Configuration(directory: dir)
+
+        // First "app launch"
+        do {
+            let dest = try RollingFileDestination(configuration: config)
+            dest.info("first launch")
+            try await Task.sleep(for: .milliseconds(500))
+        }
+
+        // Second "app launch" — should append to the same file
+        do {
+            let dest = try RollingFileDestination(configuration: config)
+            dest.info("second launch")
+            try await Task.sleep(for: .milliseconds(500))
+        }
+
+        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "log" }
+        #expect(files.count == 1, "Expected 1 file but found \(files.count): \(files.map(\.lastPathComponent))")
+
+        let content = try String(contentsOf: files[0], encoding: .utf8)
+        #expect(content.contains("first launch"))
+        #expect(content.contains("second launch"))
+    }
+
     // MARK: Private
 
     private func makeTempDir() throws -> URL {
