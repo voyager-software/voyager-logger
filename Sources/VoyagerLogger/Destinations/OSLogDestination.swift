@@ -28,7 +28,7 @@ public struct OSLogDestination: LogDestination {
 
     public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
         guard level >= self.minimumLevel else { return }
-        let formatted = self.formatMessage(
+        let formatted = self.format.format(
             level: level,
             message: "\(message())",
             file: file,
@@ -47,20 +47,4 @@ public struct OSLogDestination: LogDestination {
     // MARK: Private
 
     private let logger: os.Logger
-
-    private func formatMessage(
-        level: LogLevel,
-        message: String,
-        file: String,
-        function: String,
-        line: Int
-    ) -> String {
-        self.format.format(
-            level: level,
-            message: message,
-            file: file,
-            function: function,
-            line: line
-        )
-    }
 }
