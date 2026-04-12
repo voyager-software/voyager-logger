@@ -8,7 +8,7 @@
 import Foundation
 import Compression
 
-public actor LogFileExporter {
+public struct LogFileExporter: Sendable {
     // MARK: Lifecycle
 
     public init(directory: URL) {

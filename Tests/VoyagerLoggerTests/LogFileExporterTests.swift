@@ -6,7 +6,7 @@ struct LogFileExporterTests {
     // MARK: Internal
 
     @Test
-    func `availableLogFiles returns only .log files`() async throws {
+    func `availableLogFiles returns only .log files`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
@@ -14,24 +14,24 @@ struct LogFileExporterTests {
         try "not a log".write(to: dir.appending(component: "readme.txt"), atomically: true, encoding: .utf8)
 
         let exporter = LogFileExporter(directory: dir)
-        let files = try await exporter.availableLogFiles()
+        let files = try exporter.availableLogFiles()
 
         #expect(files.count == 1)
         #expect(files[0].lastPathComponent == "app.log")
     }
 
     @Test
-    func `availableLogFiles returns empty array for empty directory`() async throws {
+    func `availableLogFiles returns empty array for empty directory`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
         let exporter = LogFileExporter(directory: dir)
-        let files = try await exporter.availableLogFiles()
+        let files = try exporter.availableLogFiles()
         #expect(files.isEmpty)
     }
 
     @Test
-    func `exportedData merges all log files`() async throws {
+    func `exportedData merges all log files`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
@@ -39,7 +39,7 @@ struct LogFileExporterTests {
         try self.createLogFile(in: dir, name: "second.log", content: "BBB\n")
 
         let exporter = LogFileExporter(directory: dir)
-        let data = try await exporter.exportedData()
+        let data = try exporter.exportedData()
         let merged = try #require(String(data: data, encoding: .utf8))
 
         #expect(merged.contains("AAA"))
@@ -47,14 +47,14 @@ struct LogFileExporterTests {
     }
 
     @Test
-    func `exportedFileURL writes to a temp file`() async throws {
+    func `exportedFileURL writes to a temp file`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
         try self.createLogFile(in: dir, name: "test.log", content: "content\n")
 
         let exporter = LogFileExporter(directory: dir)
-        let url = try await exporter.exportedFileURL()
+        let url = try exporter.exportedFileURL()
         defer { try? FileManager.default.removeItem(at: url) }
 
         #expect(FileManager.default.fileExists(atPath: url.path))
@@ -63,7 +63,7 @@ struct LogFileExporterTests {
     }
 
     @Test
-    func `exportedZipURL creates a valid zip file`() async throws {
+    func `exportedZipURL creates a valid zip file`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
@@ -71,7 +71,7 @@ struct LogFileExporterTests {
         try self.createLogFile(in: dir, name: "b.log", content: "Hello from log B\n")
 
         let exporter = LogFileExporter(directory: dir)
-        let zipURL = try await exporter.exportedZipURL()
+        let zipURL = try exporter.exportedZipURL()
         defer { try? FileManager.default.removeItem(at: zipURL) }
 
         #expect(zipURL.pathExtension == "zip")
@@ -87,7 +87,7 @@ struct LogFileExporterTests {
     }
 
     @Test
-    func `exportedZipURL is extractable and preserves file contents`() async throws {
+    func `exportedZipURL is extractable and preserves file contents`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
@@ -95,7 +95,7 @@ struct LogFileExporterTests {
         try self.createLogFile(in: dir, name: "b.log", content: "Content of B\n")
 
         let exporter = LogFileExporter(directory: dir)
-        let zipURL = try await exporter.exportedZipURL()
+        let zipURL = try exporter.exportedZipURL()
         defer { try? FileManager.default.removeItem(at: zipURL) }
 
         // Extract using /usr/bin/ditto via posix_spawn (works on Mac Catalyst)
@@ -127,10 +127,10 @@ struct LogFileExporterTests {
         try await Task.sleep(for: .milliseconds(500))
 
         let exporter = LogFileExporter(directory: dir)
-        let files = try await exporter.availableLogFiles()
+        let files = try exporter.availableLogFiles()
         #expect(!files.isEmpty)
 
-        let data = try await exporter.exportedData()
+        let data = try exporter.exportedData()
         let merged = try #require(String(data: data, encoding: .utf8))
         #expect(merged.contains("Integration test message one"))
         #expect(merged.contains("Integration test message two"))
@@ -148,7 +148,7 @@ struct LogFileExporterTests {
         try await Task.sleep(for: .milliseconds(500))
 
         let exporter = LogFileExporter(directory: dir)
-        let url = try await exporter.exportedFileURL()
+        let url = try exporter.exportedFileURL()
         defer { try? FileManager.default.removeItem(at: url) }
 
         let content = try String(contentsOf: url, encoding: .utf8)
@@ -169,7 +169,7 @@ struct LogFileExporterTests {
         try await Task.sleep(for: .milliseconds(500))
 
         let exporter = LogFileExporter(directory: dir)
-        let zipURL = try await exporter.exportedZipURL()
+        let zipURL = try exporter.exportedZipURL()
         defer { try? FileManager.default.removeItem(at: zipURL) }
 
         // Extract and verify
@@ -192,13 +192,13 @@ struct LogFileExporterTests {
     }
 
     @Test
-    func `exportedZipURL throws noLogFiles when directory is empty`() async throws {
+    func `exportedZipURL throws noLogFiles when directory is empty`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
         let exporter = LogFileExporter(directory: dir)
-        await #expect(throws: LogFileExporter.ExportError.noLogFiles) {
-            try await exporter.exportedZipURL()
+        #expect(throws: LogFileExporter.ExportError.noLogFiles) {
+            try exporter.exportedZipURL()
         }
     }
 
