@@ -33,9 +33,9 @@ public struct LogFileExporter: Sendable {
         try FileManager.default.logFiles(in: self.directory)
     }
 
-    /// Merges all log files into a single Data payload, newest entries last.
+    /// Merges all log files into a single Data payload, oldest entries first.
     public func exportedData() throws -> Data {
-        let files = try availableLogFiles().reversed() // oldest first in merged output
+        let files = try self.availableLogFiles()
         return try files.reduce(into: Data()) { result, url in
             try result.append(Data(contentsOf: url))
         }
@@ -45,14 +45,14 @@ public struct LogFileExporter: Sendable {
     public func exportedFileURL() throws -> URL {
         let data = try exportedData()
         let dest = FileManager.default.temporaryDirectory
-            .appending(component: "app_logs_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).log")
+            .appending(component: "logs_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).log")
         try data.write(to: dest)
         return dest
     }
 
     /// Creates a zip archive of all log files and returns it as Data.
     public func exportedZipData() throws -> Data {
-        let files = try availableLogFiles()
+        let files = try self.availableLogFiles()
         guard !files.isEmpty else { throw ExportError.noLogFiles }
         return try ZIPArchiver.archive(files: files)
     }
@@ -63,14 +63,10 @@ public struct LogFileExporter: Sendable {
 }
 
 public extension FileManager {
-    /// Returns `.log` files in the given directory, sorted newest-first by creation date.
+    /// Returns `.log` files in the given directory, sorted oldest-first (chronological) by filename.
     func logFiles(in directory: URL) throws -> [URL] {
-        try contentsOfDirectory(at: directory, includingPropertiesForKeys: [.creationDateKey])
+        try contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "log" }
-            .sorted {
-                let d1 = (try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
-                let d2 = (try? $1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
-                return d1 > d2
-            }
+            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
     }
 }

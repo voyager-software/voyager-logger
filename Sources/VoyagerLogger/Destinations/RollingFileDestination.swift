@@ -187,7 +187,7 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
 
         let archives = files.filter { $0 != self.currentFileURL }
         guard archives.count > self.config.maxArchivedFiles else { return }
-        for stale in archives.dropFirst(self.config.maxArchivedFiles) {
+        for stale in archives.dropLast(self.config.maxArchivedFiles) {
             try fm.removeItem(at: stale)
         }
     }
