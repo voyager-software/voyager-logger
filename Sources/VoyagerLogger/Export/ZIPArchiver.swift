@@ -15,8 +15,8 @@ import Compression
 enum ZIPArchiver {
     // MARK: Internal
 
-    /// Creates a ZIP archive at `destination` containing the given `files`.
-    static func archive(files: [URL], to destination: URL) throws {
+    /// Creates a ZIP archive from the given `files` and returns it as `Data`.
+    static func archive(files: [URL]) throws -> Data {
         var archive = Data()
         var centralDirectory = Data()
         var localFileOffset: UInt32 = 0
@@ -92,7 +92,7 @@ enum ZIPArchiver {
         archive.append(centralDirectory)
         archive.append(eocd)
 
-        try archive.write(to: destination)
+        return archive
     }
 
     // MARK: Private

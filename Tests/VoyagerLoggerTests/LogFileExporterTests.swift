@@ -63,7 +63,7 @@ struct LogFileExporterTests {
     }
 
     @Test
-    func `exportedZipURL creates a valid zip file`() throws {
+    func `exportedZipData creates valid zip data`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
@@ -71,14 +71,9 @@ struct LogFileExporterTests {
         try self.createLogFile(in: dir, name: "b.log", content: "Hello from log B\n")
 
         let exporter = LogFileExporter(directory: dir)
-        let zipURL = try exporter.exportedZipURL()
-        defer { try? FileManager.default.removeItem(at: zipURL) }
-
-        #expect(zipURL.pathExtension == "zip")
-        #expect(FileManager.default.fileExists(atPath: zipURL.path))
+        let zipData = try exporter.exportedZipData()
 
         // Verify it starts with a ZIP local file header signature (PK\x03\x04)
-        let zipData = try Data(contentsOf: zipURL)
         #expect(zipData.count > 4)
         #expect(zipData[0] == 0x50) // 'P'
         #expect(zipData[1] == 0x4B) // 'K'
@@ -87,7 +82,7 @@ struct LogFileExporterTests {
     }
 
     @Test
-    func `exportedZipURL is extractable and preserves file contents`() throws {
+    func `exportedZipData is extractable and preserves file contents`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
@@ -95,7 +90,12 @@ struct LogFileExporterTests {
         try self.createLogFile(in: dir, name: "b.log", content: "Content of B\n")
 
         let exporter = LogFileExporter(directory: dir)
-        let zipURL = try exporter.exportedZipURL()
+        let zipData = try exporter.exportedZipData()
+
+        // Write to temp file for extraction
+        let zipURL = FileManager.default.temporaryDirectory
+            .appending(component: "test-\(UUID().uuidString).zip")
+        try zipData.write(to: zipURL)
         defer { try? FileManager.default.removeItem(at: zipURL) }
 
         // Extract using /usr/bin/ditto via posix_spawn (works on Mac Catalyst)
@@ -169,7 +169,12 @@ struct LogFileExporterTests {
         try await Task.sleep(for: .milliseconds(500))
 
         let exporter = LogFileExporter(directory: dir)
-        let zipURL = try exporter.exportedZipURL()
+        let zipData = try exporter.exportedZipData()
+
+        // Write to temp file for extraction
+        let zipURL = FileManager.default.temporaryDirectory
+            .appending(component: "test-\(UUID().uuidString).zip")
+        try zipData.write(to: zipURL)
         defer { try? FileManager.default.removeItem(at: zipURL) }
 
         // Extract and verify
@@ -192,13 +197,13 @@ struct LogFileExporterTests {
     }
 
     @Test
-    func `exportedZipURL throws noLogFiles when directory is empty`() throws {
+    func `exportedZipData throws noLogFiles when directory is empty`() throws {
         let dir = try makeTempDir()
         defer { cleanup(dir) }
 
         let exporter = LogFileExporter(directory: dir)
         #expect(throws: LogFileExporter.ExportError.noLogFiles) {
-            try exporter.exportedZipURL()
+            try exporter.exportedZipData()
         }
     }
 

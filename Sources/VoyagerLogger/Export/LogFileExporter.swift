@@ -50,16 +50,11 @@ public struct LogFileExporter: Sendable {
         return dest
     }
 
-    /// Creates a zip archive of all log files and returns its URL.
-    public func exportedZipURL() throws -> URL {
+    /// Creates a zip archive of all log files and returns it as Data.
+    public func exportedZipData() throws -> Data {
         let files = try availableLogFiles()
         guard !files.isEmpty else { throw ExportError.noLogFiles }
-
-        let dest = FileManager.default.temporaryDirectory
-            .appending(component: "app_logs_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).zip")
-
-        try ZIPArchiver.archive(files: files, to: dest)
-        return dest
+        return try ZIPArchiver.archive(files: files)
     }
 
     // MARK: Private
