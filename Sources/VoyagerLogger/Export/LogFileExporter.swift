@@ -63,10 +63,18 @@ public struct LogFileExporter: Sendable {
 }
 
 public extension FileManager {
-    /// Returns `.log` files in the given directory, sorted oldest-first (chronological) by filename.
+    /// Returns `.log` files in the given directory, sorted oldest-first (chronological).
+    ///
+    /// Uses creation date as primary sort key with filename as tiebreaker
+    /// for files created within the same second.
     func logFiles(in directory: URL) throws -> [URL] {
-        try contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+        try contentsOfDirectory(at: directory, includingPropertiesForKeys: [.creationDateKey])
             .filter { $0.pathExtension == "log" }
-            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            .sorted {
+                let d1 = (try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
+                let d2 = (try? $1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
+                if d1 != d2 { return d1 < d2 }
+                return $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
+            }
     }
 }
