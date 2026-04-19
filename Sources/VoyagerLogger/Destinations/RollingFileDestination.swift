@@ -55,7 +55,15 @@ public final class RollingFileDestination: LogDestination, @unchecked Sendable {
 
     // MARK: - LogDestination
 
-    public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
+    public func log(
+        _ level: LogLevel,
+        message: @autoclosure () -> any Sendable,
+        info: LogInfo,
+        meta: LogMetadata,
+        file: String,
+        function: String,
+        line: Int
+    ) {
         guard level >= self.config.minimumLevel else { return }
         let entry = LogEntry(level: level, message: "\(message())", file: file, function: function, line: line)
         self.writerQueue.async { self.write(entry) }

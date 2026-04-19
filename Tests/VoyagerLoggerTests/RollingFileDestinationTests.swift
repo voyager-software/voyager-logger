@@ -142,6 +142,7 @@ struct RollingFileDestinationTests {
         dest.log(
             .warning,
             message: "custom format message",
+            info: [:],
             meta: ["requestID": "abc123"],
             file: "TestFile",
             function: "testFunction",

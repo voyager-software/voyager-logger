@@ -14,10 +14,26 @@ public struct AppLogger: LogDestination {
 
     // MARK: Public
 
-    public func log(_ level: LogLevel, message: @autoclosure () -> any Sendable, meta: LogMetadata, file: String, function: String, line: Int) {
+    public func log(
+        _ level: LogLevel,
+        message: @autoclosure () -> any Sendable,
+        info: LogInfo,
+        meta: LogMetadata,
+        file: String,
+        function: String,
+        line: Int
+    ) {
         let msg = "\(message())" // evaluate once, fan out
         for dest in self.destinations {
-            dest.log(level, message: msg, meta: meta, file: file, function: function, line: line)
+            dest.log(
+                level,
+                message: msg,
+                info: info,
+                meta: meta,
+                file: file,
+                function: function,
+                line: line
+            )
         }
     }
 
