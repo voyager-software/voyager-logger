@@ -11,7 +11,7 @@ public protocol LogDestination: Sendable {
     func log(
         _ level: LogLevel,
         message: @autoclosure () -> any Sendable,
-        info: LogInfo,
+        info: LogInfo?,
         meta: LogMetadata,
         file: String,
         function: String,
@@ -29,7 +29,7 @@ public extension LogDestination {
         self.log(
             .verbose,
             message: msg(),
-            info: [:],
+            info: nil,
             meta: [:],
             file: file.fileBaseName,
             function: function.functionBaseName,
@@ -46,7 +46,7 @@ public extension LogDestination {
         self.log(
             .debug,
             message: msg(),
-            info: [:],
+            info: nil,
             meta: [:],
             file: file.fileBaseName,
             function: function.functionBaseName,
@@ -63,7 +63,7 @@ public extension LogDestination {
         self.log(
             .info,
             message: msg(),
-            info: [:],
+            info: nil,
             meta: [:],
             file: file.fileBaseName,
             function: function.functionBaseName,
@@ -80,7 +80,7 @@ public extension LogDestination {
         self.log(
             .warning,
             message: msg(),
-            info: [:],
+            info: nil,
             meta: [:],
             file: file.fileBaseName,
             function: function.functionBaseName,
@@ -90,14 +90,14 @@ public extension LogDestination {
 
     func error(
         _ msg: @autoclosure () -> String,
-        info: LogInfo = [:],
+        info: LogInfo? = nil,
         meta: LogMetadata = [:],
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
         var msg = msg()
-        if !info.isEmpty {
+        if let info {
             msg += "\n" + info.stringValue(separator: "\n")
         }
         self.log(
@@ -113,14 +113,14 @@ public extension LogDestination {
 
     func error(
         _ err: Error,
-        info: LogInfo = [:],
+        info: LogInfo? = nil,
         meta: LogMetadata = [:],
         file: String = #fileID,
         function: String = #function,
         line: Int = #line
     ) {
         var msg = err.logMessage
-        if !info.isEmpty {
+        if let info {
             msg += "\n" + info.stringValue(separator: "\n")
         }
         var meta = meta

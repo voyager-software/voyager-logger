@@ -15,7 +15,7 @@ public struct NullDestination: LogDestination {
     public func log(
         _ level: LogLevel,
         message: @autoclosure () -> any Sendable,
-        info: LogInfo,
+        info: LogInfo?,
         meta: LogMetadata,
         file: String,
         function: String,
