@@ -95,8 +95,9 @@ Conform to `LogDestination` to create your own:
 ```swift
 struct MyDestination: LogDestination {
     func log(
-        level: LogLevel,
+        _ level: LogLevel,
         message: @autoclosure () -> any Sendable,
+        info: LogInfo?,
         meta: LogMetadata,
         file: String,
         function: String,

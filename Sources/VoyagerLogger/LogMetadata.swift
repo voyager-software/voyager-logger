@@ -37,12 +37,6 @@ public typealias LogMetadata = [LogMetadataKey: any Sendable]
 /// Optional info dictionary for convenience log methods.
 public typealias LogInfo = [String: any Sendable]
 
-/// A wrapper that makes an `Error` carriable through `LogMetadata`.
-public struct SendableError: @unchecked Sendable {
-    public let error: any Error
-    public init(_ error: any Error) { self.error = error }
-}
-
 // MARK: - Standard metadata keys
 
 public extension LogMetadataKey {

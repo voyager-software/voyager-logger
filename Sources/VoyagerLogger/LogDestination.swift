@@ -124,7 +124,7 @@ public extension LogDestination {
             msg += "\n" + info.stringValue(separator: "\n")
         }
         var meta = meta
-        meta[.originalError] = SendableError(err)
+        meta[.originalError] = err
         self.log(
             .error,
             message: msg,
