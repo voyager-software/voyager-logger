@@ -20,12 +20,6 @@ let package = Package(
     targets: [
         .target(
             name: "VoyagerLogger",
-            swiftSettings: [
-                .unsafeFlags(["-whole-module-optimization"], .when(configuration: .release)),
-            ],
-            linkerSettings: [
-                .unsafeFlags(["-Wl,-dead_strip"], .when(configuration: .release)),
-            ]
         ),
         .testTarget(
             name: "VoyagerLoggerTests",
